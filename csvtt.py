@@ -5,6 +5,7 @@ import csv
 import datetime
 import os.path
 import logging
+from prompt_handles import PromptWrapper
 
 
 class CSVReader(object):
