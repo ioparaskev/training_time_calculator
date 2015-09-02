@@ -18,7 +18,7 @@ class CSVReader(object):
             self.__skip_keywords = dict()
         except RuntimeError:
             logging.error('Invalid file name or file does not exist')
-            raise
+            raise RuntimeError('Invalid file name or file does not exist')
 
     def validate_file_name(self, file_name):
         if not (os.path.exists(file_name) and os.path.isfile(file_name)):
@@ -35,30 +35,151 @@ class CSVReader(object):
     def new_line(self):
         return self.__new_line
 
-    def read_file(self):
-        return open(self.file_name, self.new_line)
+    def open_file(self):
+        return open(self.file_name, 'r', newline=self.new_line)
 
     def skip_line(self, row):
-        if not (self.__skip_keywords and isinstance(dict, self.__skip_keywords)) :
+        if not (self.__skip_keywords and isinstance(self.__skip_keywords, dict)) :
             return False
 
-        for column in row:
-            skip_keyword = self.__skip_keywords.get([column], '')
-            if skip_keyword and column.find(skip_keyword) != -1:
+        for i, entry in enumerate(row):
+            skip_keyword = self.__skip_keywords.get(str(i), '')
+            if skip_keyword and skip_keyword in entry:
                 return True
+
         return False
 
-    def read_column(self, column_num):
+    def read_file(self):
         read_columns = []
-        with self.read_file() as file:
+        with self.open_file() as file:
             line_reader = csv.reader(file, delimiter='|')
             for row in line_reader:
-                if self.skip_line(row):
+                try:
+                    if self.skip_line(row):
+                        continue
+                    read_columns.append(row)
+                except IndexError:
                     continue
+        return tuple(read_columns)
+
+
+class TimeCalculator(object):
+    def __init__(self, secs):
+        self.hours = 0
+        self.minutes = 0
+        self.seconds = secs
+
+    def set_hours_minutes_seconds(self, hours, minutes, seconds):
+        self.hours = hours
+        self.minutes = minutes
+        self.seconds = seconds
+
+    @property
+    def h_m_s(self):
+        return self.hours, self.minutes, self.seconds
+
+    def hours_minute_secs_calculator(self):
+        hours, remainder = divmod(self.seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return hours, minutes, seconds
+
+    def calculate(self):
+        self.set_hours_minutes_seconds(*self.hours_minute_secs_calculator())
+
+
+class Training(object):
+    def __init__(self, title, timestamp):
+        self.title = title
+        self.timestamp = timestamp
+
+
+class TrainingTimeCalculator(object):
+    def __init__(self, trainings):
+        self.trainings = trainings
 
 
 class MBB40H(object):
-    pass
+    def __init__(self, file_name):
+        try:
+            self.csv_reader = CSVReader(file_name, delimiter='|', newline='')
+        except RuntimeError as err:
+            print(err)
+            exit(1)
+
+        column_keywords_to_skip = {"0": "Item Name",
+                                   "1": "Status",
+                                   "2": "Marked Complete By",
+                                   "3": "Duration(HH:MM)"}
+        self.csv_reader.set_skip_keywords_in_columns(column_keywords_to_skip)
+        self.total_time = TimeCalculator(0)
+        self.__trainings = tuple()
+
+    def calculate_total_time(self, trainings):
+        total_time = datetime.timedelta(hours=0, minutes=0)
+
+        for train in trainings:
+            timer = datetime.datetime.strptime(train.timestamp, '%H:%M')
+            total_time += datetime.timedelta(hours=timer.hour, minutes=timer.minute)
+
+        self.total_time = TimeCalculator(total_time.total_seconds())
+        self.total_time.calculate()
+
+    def print_training_titles(self):
+        print('*******Training titles*******')
+        for i, train in enumerate(self.__trainings):
+            print('#{num}  {title}'.format(num=i+1, title=train.title))
+
+    def print_total_training_time(self):
+        hours, minutes, seconds = self.total_time.h_m_s
+        print('\n*******Total time of training*******'
+              '\n{} hours {} minutes {} seconds'.format(hours, minutes, seconds))
+
+    def craft_training(self, line):
+        training = Training(title=line[0], timestamp=line[3])
+        return training
+
+    def create_trainings(self):
+        exported_trainings = self.csv_reader.read_file()
+        trainings = []
+
+        for line in exported_trainings:
+            trainings.append(self.craft_training(line))
+
+        self.__trainings = tuple(trainings)
+
+    def calculate_trainings(self):
+        if not self.__trainings:
+            self.create_trainings()
+
+        self.calculate_total_time(self.__trainings)
+        self.print_training_titles()
+        self.print_total_training_time()
+
+    @staticmethod
+    def setup_exclude_prompt():
+        exclude_question = 'Do you want to exclude? (y=yes, n=no, q=quit)'
+        exclude_answers = ('y', 'n', 'q')
+        prompt = PromptWrapper(exclude_question, exclude_answers)
+        return prompt
+
+    def exclude_training(self, training):
+        self.__trainings = tuple(train for train in self.__trainings if train is not training)
+
+    def exclude(self):
+        prompt = self.setup_exclude_prompt()
+
+        for training in self.__trainings:
+            print(training.title)
+            choice = prompt.get_prompt_answer().lower()
+
+            if choice == 'y':
+                self.exclude_training(training)
+            elif choice == 'n':
+                continue
+            elif choice == 'q':
+                break
+        print("\n\n\n\n")
+        self.calculate_trainings()
 
 
 def main():
@@ -67,29 +188,17 @@ def main():
           'otherwise you will have to enter the full path\n')
     file_name = input('Enter file name with the file extension:')
 
-    with open(file_name, newline='') as csv_file:
-        line_reader = csv.reader(csv_file, delimiter='|')
-        add_time = datetime.timedelta(hours=0, minutes=0)
-        for row in line_reader:
-            print(row[0])
-            if row[3].find('Duration') != -1:
-                continue
-            timer = datetime.datetime.strptime(row[3], '%H:%M')
-            add_time += datetime.timedelta(hours=timer.hour, minutes=timer.minute)
-        hours, remainder = divmod(add_time.total_seconds(), 3600)
-        minutes, seconds = divmod(remainder, 60)
-        print('Total time of csv')
-        print('{} hours {} minutes {} seconds'.format(int(hours), int(minutes), int(seconds)))
+    mbb40 = MBB40H(file_name)
+    mbb40.calculate_trainings()
+
+    exclude_question = 'Do you want to exclude any of the trainings? (y/n)'
+    exclude_answers = ('y', 'n')
+    prompt = PromptWrapper(exclude_question, exclude_answers)
+    exclude_choice = prompt.get_prompt_answer()
+
+    if exclude_choice == 'y':
+        mbb40.exclude()
 
 
 if __name__ == '__main__':
     main()
-
-#todo add functions for moduling
-    #todo time column should be variable not constant
-    #todo escaping of lines with no duration should be more agile
-    #todo support for automatic selection of entries to count & skip
-#todo add unit tests
-
-
-
