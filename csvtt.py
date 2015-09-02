@@ -1,159 +1,43 @@
 #!/usr/bin/env python
-__author__ = 'ioparaskev'
 
-import csv
 import datetime
-import os.path
-import logging
+
+from file_handlers import FileReader, CSVReader, CSVKeywordSkipper
 from prompt_handles import PromptWrapper
+from training_time import TrainingsPool
 
 
-class CSVReader(object):
-    def __init__(self, file_name, delimiter=',', newline=''):
-        try:
-            self.validate_file_name(file_name)
-            self.file_name = file_name
-            self.__delimiter = delimiter
-            self.__new_line = newline
-            self.__skip_keywords = dict()
-        except RuntimeError:
-            logging.error('Invalid file name or file does not exist')
-            raise RuntimeError('Invalid file name or file does not exist')
-
-    def validate_file_name(self, file_name):
-        if not (os.path.exists(file_name) and os.path.isfile(file_name)):
-            raise RuntimeError()
-
-    def set_skip_keywords_in_columns(self, keywords_in_columns=None):
-        self.__skip_keywords = keywords_in_columns
-
-    @property
-    def delimiter(self):
-        return self.__delimiter
-
-    @property
-    def new_line(self):
-        return self.__new_line
-
-    def open_file(self):
-        return open(self.file_name, 'r', newline=self.new_line)
-
-    def skip_line(self, row):
-        if not (self.__skip_keywords and isinstance(self.__skip_keywords, dict)) :
-            return False
-
-        for i, entry in enumerate(row):
-            skip_keyword = self.__skip_keywords.get(str(i), '')
-            if skip_keyword and skip_keyword in entry:
-                return True
-
-        return False
-
-    def read_file(self):
-        read_columns = []
-        with self.open_file() as file:
-            line_reader = csv.reader(file, delimiter='|')
-            for row in line_reader:
-                try:
-                    if self.skip_line(row):
-                        continue
-                    read_columns.append(row)
-                except IndexError:
-                    continue
-        return tuple(read_columns)
-
-
-class TimeCalculator(object):
-    def __init__(self, secs):
-        self.hours = 0
-        self.minutes = 0
-        self.seconds = secs
-
-    def set_hours_minutes_seconds(self, hours, minutes, seconds):
-        self.hours = hours
-        self.minutes = minutes
-        self.seconds = seconds
-
-    @property
-    def h_m_s(self):
-        return self.hours, self.minutes, self.seconds
-
-    def hours_minute_secs_calculator(self):
-        hours, remainder = divmod(self.seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        return hours, minutes, seconds
-
-    def calculate(self):
-        self.set_hours_minutes_seconds(*self.hours_minute_secs_calculator())
-
-
-class Training(object):
-    def __init__(self, title, timestamp):
-        self.title = title
-        self.timestamp = timestamp
-
-
-class TrainingTimeCalculator(object):
-    def __init__(self, trainings):
-        self.trainings = trainings
+__author__ = 'ioparaskev'
 
 
 class MBB40H(object):
-    def __init__(self, file_name):
-        try:
-            self.csv_reader = CSVReader(file_name, delimiter='|', newline='')
-        except RuntimeError as err:
-            print(err)
-            exit(1)
-
+    def _setup_exclusions(self):
+        self.keyword_skipper = CSVKeywordSkipper()
         column_keywords_to_skip = {"0": "Item Name",
                                    "1": "Status",
                                    "2": "Marked Complete By",
                                    "3": "Duration(HH:MM)"}
-        self.csv_reader.set_skip_keywords_in_columns(column_keywords_to_skip)
-        self.total_time = TimeCalculator(0)
-        self.__trainings = tuple()
+        self.keyword_skipper.set_skip_keywords(column_keywords_to_skip)
 
-    def calculate_total_time(self, trainings):
-        total_time = datetime.timedelta(hours=0, minutes=0)
+    def __init__(self, file_name, exclude_file=None):
+        self.keyword_skipper = None
+        self.exclude_reader = None
+        try:
+            self.csv_reader = CSVReader(file_name, delimiter='|', newline='')
+            if exclude_file:
+                self.exclude_reader = FileReader(exclude_file)
+        except RuntimeError as err:
+            print(err)
+            exit(1)
 
-        for train in trainings:
-            timer = datetime.datetime.strptime(train.timestamp, '%H:%M')
-            total_time += datetime.timedelta(hours=timer.hour, minutes=timer.minute)
+        self._setup_exclusions()
+        self.total_time = tuple()
+        self.training_pool = None
 
-        self.total_time = TimeCalculator(total_time.total_seconds())
-        self.total_time.calculate()
-
-    def print_training_titles(self):
-        print('*******Training titles*******')
-        for i, train in enumerate(self.__trainings):
-            print('#{num}  {title}'.format(num=i+1, title=train.title))
-
-    def print_total_training_time(self):
-        hours, minutes, seconds = self.total_time.h_m_s
-        print('\n*******Total time of training*******'
-              '\n{} hours {} minutes {} seconds'.format(hours, minutes, seconds))
-
-    def craft_training(self, line):
-        training = Training(title=line[0], timestamp=line[3])
-        return training
-
-    def create_trainings(self):
-        exported_trainings = self.csv_reader.read_file()
-        trainings = []
-
-        for line in exported_trainings:
-            trainings.append(self.craft_training(line))
-
-        self.__trainings = tuple(trainings)
-
-    def calculate_trainings(self):
-        if not self.__trainings:
-            self.create_trainings()
-
-        self.calculate_total_time(self.__trainings)
-        self.print_training_titles()
-        self.print_total_training_time()
+    def _create_trainings(self):
+        lines = self.csv_reader.read_file()
+        exported_trainings = self.keyword_skipper.skip_rows_by_keywords(lines)
+        self.training_pool = TrainingsPool(exported_trainings)
 
     @staticmethod
     def setup_exclude_prompt():
@@ -163,12 +47,12 @@ class MBB40H(object):
         return prompt
 
     def exclude_training(self, training):
-        self.__trainings = tuple(train for train in self.__trainings if train is not training)
+        self.training_pool.remove_training(training)
 
     def exclude(self):
         prompt = self.setup_exclude_prompt()
 
-        for training in self.__trainings:
+        for training in self.training_pool.trainings:
             print(training.title)
             choice = prompt.get_prompt_answer().lower()
 
@@ -178,18 +62,25 @@ class MBB40H(object):
                 continue
             elif choice == 'q':
                 break
-        print("\n\n\n\n")
-        self.calculate_trainings()
+        print('\n\n\n\n')
+        self.print_report()
+
+    def print_report(self):
+        if not self.training_pool:
+            self._create_trainings()
+        self.training_pool.print_report()
 
 
 def main():
     print('*******Training time counter*******\n\n')
     print('Make sure the file is in the same folder with this script,\n'
           'otherwise you will have to enter the full path\n')
-    file_name = input('Enter file name with the file extension:')
+    file_name = input('Enter file name with the file extension: ')
+    exclude_file = input('\nEnter file name with trainings to exclude\n'
+                         '(Press enter if there\'s no such file): ')
 
-    mbb40 = MBB40H(file_name)
-    mbb40.calculate_trainings()
+    mbb40 = MBB40H(file_name, exclude_file)
+    mbb40.print_report()
 
     exclude_question = 'Do you want to exclude any of the trainings? (y/n)'
     exclude_answers = ('y', 'n')

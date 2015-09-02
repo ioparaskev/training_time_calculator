@@ -62,7 +62,6 @@ class Response(object):
         self.restrictions_match_possible_answers(restriction=restrict_func)
         self.enable_restriction('str_restr', restrict_func)
 
-
     @answer_restriction.setter
     def answer_restriction(self, val):
         if not val:
