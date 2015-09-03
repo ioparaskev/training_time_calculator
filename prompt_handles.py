@@ -159,6 +159,8 @@ class PromptWrapper(object):
         self.accepted_answers = accepted_answers
         self.answer_type_restriction = answer_type_restriction
         self.response = Response()
+        self.set_restrictions(case_sensitive, accepted_answers,
+                              answer_type_restriction)
 
     def set_restrictions(self, case_sensitive='off', possible_answers=tuple(),
                          answer_restrictions=None):
@@ -166,10 +168,9 @@ class PromptWrapper(object):
                                        answer_restrictions)
 
     def get_prompt_answer(self):
-        answer = None
         try:
             answer = self.response.get_prompt_response(self.question)
         except RuntimeError as error:
             logging.error(error)
-        finally:
-            return answer
+            raise
+        return answer
