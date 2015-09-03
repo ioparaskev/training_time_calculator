@@ -1,16 +1,13 @@
 #!/usr/bin/env python
-
-import datetime
-
-from file_handlers import FileReader, CSVReader, CSVKeywordSkipper
+from file_handlers import CSVReader, CSVKeywordSkipper
 from prompt_handles import PromptWrapper
-from training_time import TrainingsPool
+from trainings import TrainingsPool, TrainingFilter
 
 
 __author__ = 'ioparaskev'
 
 
-class MBB40H(object):
+class MBB40H(TrainingFilter):
     def _setup_exclusions(self):
         self.keyword_skipper = CSVKeywordSkipper()
         column_keywords_to_skip = {"0": "Item Name",
@@ -25,7 +22,7 @@ class MBB40H(object):
         try:
             self.csv_reader = CSVReader(file_name, delimiter='|', newline='')
             if exclude_file:
-                self.exclude_reader = FileReader(exclude_file)
+                super(MBB40H, self).__init__(exclude_file)
         except RuntimeError as err:
             print(err)
             exit(1)
@@ -38,32 +35,6 @@ class MBB40H(object):
         lines = self.csv_reader.read_file()
         exported_trainings = self.keyword_skipper.skip_rows_by_keywords(lines)
         self.training_pool = TrainingsPool(exported_trainings)
-
-    @staticmethod
-    def setup_exclude_prompt():
-        exclude_question = 'Do you want to exclude? (y=yes, n=no, q=quit)'
-        exclude_answers = ('y', 'n', 'q')
-        prompt = PromptWrapper(exclude_question, exclude_answers)
-        return prompt
-
-    def exclude_training(self, training):
-        self.training_pool.remove_training(training)
-
-    def exclude(self):
-        prompt = self.setup_exclude_prompt()
-
-        for training in self.training_pool.trainings:
-            print(training.title)
-            choice = prompt.get_prompt_answer().lower()
-
-            if choice == 'y':
-                self.exclude_training(training)
-            elif choice == 'n':
-                continue
-            elif choice == 'q':
-                break
-        print('\n\n\n\n')
-        self.print_report()
 
     def print_report(self):
         if not self.training_pool:

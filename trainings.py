@@ -1,3 +1,7 @@
+from abc import ABCMeta, abstractmethod
+from file_handlers import FileReader
+from prompt_handles import PromptWrapper
+
 __author__ = 'jparaske'
 
 import datetime
@@ -90,3 +94,54 @@ class TrainingsPool(object):
 
         self.print_training_titles()
         self.print_total_training_time()
+
+
+class TrainingFilter(metaclass=ABCMeta):
+    def __init__(self, exclude_file):
+        self.training_pool = TrainingsPool(None)
+        self.exclude_reader = FileReader(exclude_file)
+
+    @staticmethod
+    def _setup_exclude_prompt():
+        exclude_question = 'Do you want to exclude? (y=yes, n=no, q=quit)'
+        exclude_answers = ('y', 'n', 'q')
+        prompt = PromptWrapper(exclude_question, exclude_answers)
+        return prompt
+
+    def _exclude_training(self, training):
+        self.training_pool.remove_training(training)
+
+    def _exclude_multiple_trainings(self, training_stack):
+        for training in training_stack:
+            self._exclude_training(training)
+
+    def _exclude_interactively(self):
+        prompt = self._setup_exclude_prompt()
+        for training in self.training_pool.trainings:
+            print(training.title)
+            choice = prompt.get_prompt_answer().lower()
+
+            if choice == 'y':
+                self._exclude_training(training)
+            elif choice == 'n':
+                continue
+            elif choice == 'q':
+                break
+
+    def _exclude_from_file(self):
+        exclusions = self.exclude_reader.read_file()
+        trainings_to_exclude = TrainingsPool(exclusions)
+        self._exclude_multiple_trainings(trainings_to_exclude.trainings)
+
+    @abstractmethod
+    def print_report(self):
+        pass
+
+    def exclude(self):
+        if not self.exclude_reader:
+            self._exclude_interactively()
+        else:
+            self._exclude_from_file()
+
+        print('Excluding trainings....\n\n\n\n')
+        self.print_report()
