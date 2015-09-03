@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+from copy import deepcopy
 from file_handlers import FileReader
 from prompt_handles import PromptWrapper
 
@@ -56,10 +56,16 @@ class TrainingsPool(object):
     def trainings(self):
         return [x for x in self._trainings]
 
+    def training_exists(self, training):
+        for x in self._trainings:
+            if x.title == training.title:
+                return True
+        return False
+
     def remove_training(self, training):
-        if training in self._trainings:
-            self._trainings = tuple(train for train in self._trainings
-                                    if train is not training)
+        if self.training_exists(training):
+            self._trainings = tuple(x for x in self._trainings
+                                    if x.title != training.title)
         self._total_training_time = (0, 0, 0)
 
     @property
@@ -71,18 +77,18 @@ class TrainingsPool(object):
         return filter(lambda x: x != 0, self.training_time)
 
     @staticmethod
-    def _craft_training(line):
-        training = Training(title=line[0], timestamp=line[3])
+    def _craft_training(entry):
+        training = Training(title=entry[0], timestamp=entry[1])
         return training
 
     def print_training_titles(self):
-        print('*******Training titles*******')
+        print('\n*******Training titles*******')
         for i, train in enumerate(self._trainings):
             print('#{num}  {title}'.format(num=i+1, title=train.title))
 
     def print_total_training_time(self):
         print('\n*******Total time of trainings*******'
-              '\n{} hours {} minutes {} seconds'.format(*self.training_time))
+              '\n{} hours {} minutes {} seconds\n'.format(*self.training_time))
 
     def calculate_training_time(self):
         training_time = TimestampTimeCalculator(self._trainings)
@@ -96,16 +102,17 @@ class TrainingsPool(object):
         self.print_total_training_time()
 
 
-class TrainingFilter(metaclass=ABCMeta):
-    def __init__(self, exclude_file):
-        self.training_pool = TrainingsPool(None)
-        self.exclude_reader = FileReader(exclude_file)
+class TrainingsPoolFilter(object):
+    def __init__(self, traing_pool, exclude_file=None):
+        self.training_pool = deepcopy(traing_pool)
+        self.exclude_reader = FileReader(exclude_file) if exclude_file else None
 
     @staticmethod
     def _setup_exclude_prompt():
         exclude_question = 'Do you want to exclude? (y=yes, n=no, q=quit)'
         exclude_answers = ('y', 'n', 'q')
-        prompt = PromptWrapper(exclude_question, exclude_answers)
+        prompt = PromptWrapper(exclude_question,
+                               accepted_answers=exclude_answers)
         return prompt
 
     def _exclude_training(self, training):
@@ -120,7 +127,6 @@ class TrainingFilter(metaclass=ABCMeta):
         for training in self.training_pool.trainings:
             print(training.title)
             choice = prompt.get_prompt_answer().lower()
-
             if choice == 'y':
                 self._exclude_training(training)
             elif choice == 'n':
@@ -129,19 +135,14 @@ class TrainingFilter(metaclass=ABCMeta):
                 break
 
     def _exclude_from_file(self):
-        exclusions = self.exclude_reader.read_file()
+        exclusions = [[x, 0] for x in self.exclude_reader.read_file()]
         trainings_to_exclude = TrainingsPool(exclusions)
         self._exclude_multiple_trainings(trainings_to_exclude.trainings)
 
-    @abstractmethod
-    def print_report(self):
-        pass
-
-    def exclude(self):
+    def filter_trainings(self):
         if not self.exclude_reader:
             self._exclude_interactively()
         else:
             self._exclude_from_file()
 
-        print('Excluding trainings....\n\n\n\n')
-        self.print_report()
+        return self.training_pool
