@@ -43,9 +43,9 @@ class Training(object):
 
 
 class TrainingsPool(object):
-    def __init__(self, trainings_per_line):
-        self._trainings = tuple(self._craft_training(line)
-                                for line in trainings_per_line)
+    def __init__(self, trainings_stack):
+        self._trainings = tuple(self._craft_training(entry)
+                                for entry in trainings_stack)
         self._total_training_time = (0, 0, 0)
 
     @property
