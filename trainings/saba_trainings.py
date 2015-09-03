@@ -54,10 +54,8 @@ class SabaTrainingTimer(object):
         if run_exclude:
             filtered_pool = self._filter_trainings()
             if len(filtered_pool.trainings) != len(self.training_pool.trainings):
-                print('\nExcluding trainings....\n')
                 self.training_pool = filtered_pool
-            self.print_report()
 
     def autorun(self):
-        self.print_report()
         self.exclude()
+        self.print_report()

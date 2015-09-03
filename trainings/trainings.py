@@ -48,7 +48,7 @@ class TrainingsPool(object):
         return training
 
     def print_training_titles(self):
-        print('\n*******Training titles*******')
+        print('\n-------Training titles-------')
         for i, train in enumerate(self._trainings):
             print('#{num}  {title}'.format(num=i+1, title=train.title))
 
