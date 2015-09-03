@@ -57,27 +57,24 @@ class Response(object):
     def is_str_restriction(restriction):
         return restriction in Response.get_usual_str_restriction_functions().keys()
 
+    def match_regex(self, sentence):
+        pattern = re.compile(self.regx)
+        if pattern.match(sentence).group() == sentence:
+            return True
+        else:
+            return False
+
+    def restrictions_match_possible_answers(self,
+                                            restriction_func=lambda x: False):
+        err = RuntimeError('Possible given answers do not match restriction!')
+        for answer in self.possible_answers:
+            if not restriction_func(answer):
+                raise err
+
     def set_str_restriction(self, restriction):
         restrict_func = self.get_usual_str_restriction_functions()[restriction]
-        self.restrictions_match_possible_answers(restriction=restrict_func)
+        self.restrictions_match_possible_answers(restrict_func)
         self.enable_restriction('str_restr', restrict_func)
-
-    @answer_restriction.setter
-    def answer_restriction(self, val):
-        if not val:
-            return
-
-        if self.is_str_restriction(val):
-            self.set_str_restriction(val)
-        elif self.is_regex(val):
-            regx = val.strip("regex:")
-            self.restrictions_match_possible_answers(regex=regx)
-            self.enable_restriction('regx', regx)
-        else:
-            raise NotImplementedError('Wrong restriction given\n'
-                                      'Use --help to see possible restrictions')
-
-        self.ans_restrict = True
 
     @staticmethod
     def is_regex(regex_keyword):
@@ -89,36 +86,39 @@ class Response(object):
                                "'regex:'[regex_expression]")
         return True
 
-    def restrictions_match_possible_answers(self, restriction=None, regex=None):
-        err = RuntimeError('Possible given answers do not match restriction!')
-        if restriction:
-            for answer in self.possible_answers:
-                if not restriction(answer):
-                    raise err
-        elif regex:
-            for answer in self.possible_answers:
-                if not self.match_regex(answer):
-                    raise err
+    @answer_restriction.setter
+    def answer_restriction(self, val):
+        if not val:
+            return
 
-    def match_possible_answers(self, answer):
+        if self.is_str_restriction(val):
+            self.set_str_restriction(val)
+        elif self.is_regex(val):
+            regx = val.strip("regex:")
+            self.restrictions_match_possible_answers(self.match_regex)
+            self.enable_restriction('regx', regx)
+        else:
+            raise NotImplementedError('Wrong restriction given\n'
+                                      'Use --help to see possible restrictions')
+
+        self.ans_restrict = True
+
+    def case_sensitive_match_setup(self, answer):
         if self.case_sensitive == 'on':
             answer = answer.upper()
             answers = []
             for ans in self.possible_answers:
                 answers.append(ans.upper())
             self.possible_answers = tuple(answers)
+        return answer
+
+    def match_possible_answers(self, answer):
+        answer = self.case_sensitive_match_setup(answer)
 
         if answer not in self.possible_answers:
             return False
         else:
             return True
-
-    def match_regex(self, sentence):
-        pattern = re.compile(self.regx)
-        if pattern.match(sentence).group() == sentence:
-            return True
-        else:
-            return False
 
     def match_answer_restriction(self, answer):
         if self.restrictions['str_restr'] and not self.str_restriction(answer):
