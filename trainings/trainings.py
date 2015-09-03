@@ -1,43 +1,9 @@
+__author__ = 'ioparaskev'
+
 from copy import deepcopy
-from file_handlers import FileReader
-from prompt_handles import PromptWrapper
-
-__author__ = 'jparaske'
-
-import datetime
-
-
-class TimeCalculator(object):
-    def __init__(self, secs):
-        self._seconds = secs
-
-    @staticmethod
-    def hours_minute_secs_calculator(seconds):
-        hours, remainder = divmod(seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        return hours, minutes, seconds
-
-    def calculate(self):
-        return self.hours_minute_secs_calculator(self._seconds)
-
-
-class TimestampTimeCalculator(TimeCalculator):
-    def __init__(self, trainings, time_format='%H:%M'):
-        self.trainings = trainings
-        self.time_format = time_format
-        super(TimestampTimeCalculator, self).__init__(0)
-
-    def _total_time_sum(self):
-        total_time = datetime.timedelta(hours=0, minutes=0)
-        for train in self.trainings:
-            timer = datetime.datetime.strptime(train.timestamp, self.time_format)
-            total_time += datetime.timedelta(hours=timer.hour, minutes=timer.minute)
-
-        return total_time
-
-    def calculate_total_training_time(self):
-        self._seconds = self._total_time_sum().seconds
-        return self.calculate()
+from file_handlers.generic_file import FileReader
+from prompt_handler.prompt_handles import PromptWrapper
+from timers_calc.calculator import TimestampTimeCalculator
 
 
 class Training(object):
@@ -100,6 +66,12 @@ class TrainingsPool(object):
 
         self.print_training_titles()
         self.print_total_training_time()
+
+
+class SabaTrainings(TrainingsPool):
+    def __init__(self, extracted_trainings):
+        trainings_stack = [[x[0], x[3]] for x in extracted_trainings]
+        super(SabaTrainings, self).__init__(trainings_stack)
 
 
 class TrainingsPoolFilter(object):

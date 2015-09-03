@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-from saba_trainings import SabaTrainingTimer
-
-
 __author__ = 'ioparaskev'
+
+from trainings.saba_trainings import SabaTrainingTimer
 
 
 def main():

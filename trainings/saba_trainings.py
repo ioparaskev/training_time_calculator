@@ -1,14 +1,8 @@
-from file_handlers import CSVKeywordSkipper, CSVReader
-from prompt_handles import PromptWrapper
-from trainings import TrainingsPool, TrainingsPoolFilter
+__author__ = 'ioparaskev'
 
-__author__ = 'jparaske'
-
-
-class SabaTrainings(TrainingsPool):
-    def __init__(self, extracted_trainings):
-        trainings_stack = [[x[0], x[3]] for x in extracted_trainings]
-        super(SabaTrainings, self).__init__(trainings_stack)
+from file_handlers.csv import CSVReader, CSVKeywordSkipper
+from prompt_handler.prompt_handles import PromptWrapper
+from trainings.trainings import TrainingsPoolFilter, SabaTrainings
 
 
 class SabaTrainingTimer(object):
