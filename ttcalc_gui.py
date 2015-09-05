@@ -29,14 +29,13 @@ class ResizableListbox(tkint.Listbox):
         # bump listbox size until all entries fit
         pixels = pixels + 10
         width = int(self.cget("width"))
-        for w in range(0, maxwidth+1, 5):
+        for w in range(0, maxwidth + 1, 5):
             if self.winfo_reqwidth() >= pixels:
                 break
-            self.config(width=width+w)
+            self.config(width=width + w)
 
 
 class mbb40Gui(tkint.Frame):
-
     def __init__(self, parent):
         tkint.Frame.__init__(self, parent)
 
@@ -51,18 +50,32 @@ class mbb40Gui(tkint.Frame):
         self.csv_file_name = None
         self.exlusions_file_name = None
 
-        self.training_calculator_cls = SabaTrainingTimer
+        self._calculator = None
 
-        self.mbb40 = None
+    @property
+    def _training_crafter(self):
+        return SabaTrainingTimer
+
+    @property
+    def training_calculator(self):
+        if not self._calculator:
+            self._calculator = self._training_crafter(self.csv_file_name,
+                                                      self.exlusions_file_name)
+
+        return self._calculator
 
     def _setup_buttons(self, frame):
         csv_file_button = tkint.Button(frame, text='Open file with trainings',
-                                       command=self._set_training_file, width=50)
+                                       command=self._set_training_file,
+                                       width=50)
         csv_file_button.pack()
-        exclude_file_button = tkint.Button(frame, text='Open file with exclusions',
-                                           command=self._set_exclusions_file, width=50)
+        exclude_file_button = tkint.Button(frame,
+                                           text='Open file with exclusions',
+                                           command=self._set_exclusions_file,
+                                           width=50)
         exclude_file_button.pack()
-        quit_button = tkint.Button(self, text="Quit", command=self.parent.destroy)
+        quit_button = tkint.Button(self, text="Quit",
+                                   command=self.parent.destroy)
         quit_button.pack(side=tkint.RIGHT, padx=5, pady=5)
         ok_button = tkint.Button(self, text="Run", command=self.run)
         ok_button.pack(side=tkint.RIGHT)
@@ -70,7 +83,8 @@ class mbb40Gui(tkint.Frame):
         clear_button = tkint.Button(self, text="Clear", command=self._clear)
         clear_button.pack(side=tkint.LEFT, padx=5, pady=5)
 
-        options_button = tkint.Button(self, text="Options", command=self.__options)
+        options_button = tkint.Button(self, text="Options",
+                                      command=self.__options)
         options_button.pack(side=tkint.LEFT, padx=5, pady=5)
 
     def _setup_ui(self):
@@ -107,7 +121,8 @@ class mbb40Gui(tkint.Frame):
         for i, training in enumerate(results[0]):
             self.listbox.insert(i, "   {}".format(training.title))
 
-        time_label = tkint.Label(self.popup, text='{} hours {} minutes {} seconds'
+        time_label = tkint.Label(self.popup,
+                                 text='{} hours {} minutes {} seconds'
                                  .format(*results[1]))
         time_label.pack()
         close_button = tkint.Button(self.popup, text="Close",
@@ -118,8 +133,8 @@ class mbb40Gui(tkint.Frame):
 
     def _exclude(self):
         exclusions = [int(x) for x in self.listbox.curselection()]
-        self.mbb40.exclude(exclusions)
-        results = self.mbb40.gui_report()
+        self.training_calculator.exclude(exclusions)
+        results = self.training_calculator.gui_report()
         self.popup.destroy()
         self._show_results(results)
 
@@ -144,10 +159,7 @@ class mbb40Gui(tkint.Frame):
             tkint.messagebox.showerror('Error', 'No csv file given!')
             return
 
-        self.mbb40 = self.training_calculator_cls(self.csv_file_name,
-                                                  self.exlusions_file_name)
-
-        results = self.mbb40.gui_report()
+        results = self.training_calculator.gui_report()
 
         if self.exlusions_file_name:
             self._show_results(results)
@@ -156,7 +168,6 @@ class mbb40Gui(tkint.Frame):
 
 
 def main():
-
     root = tkint.Tk()
     root.geometry("300x100+200+100")
     root.resizable(0, 0)
