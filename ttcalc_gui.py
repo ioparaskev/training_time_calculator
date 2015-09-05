@@ -50,6 +50,9 @@ class mbb40Gui(tkint.Frame):
 
         self.csv_file_name = None
         self.exlusions_file_name = None
+
+        self.training_calculator_cls = SabaTrainingTimer
+
         self.mbb40 = None
 
     def _setup_buttons(self, frame):
@@ -67,6 +70,9 @@ class mbb40Gui(tkint.Frame):
         clear_button = tkint.Button(self, text="Clear", command=self._clear)
         clear_button.pack(side=tkint.LEFT, padx=5, pady=5)
 
+        options_button = tkint.Button(self, text="Options", command=self.__options)
+        options_button.pack(side=tkint.LEFT, padx=5, pady=5)
+
     def _setup_ui(self):
 
         self.parent.title("SABA Training time calculator")
@@ -83,12 +89,15 @@ class mbb40Gui(tkint.Frame):
     def _set_exclusions_file(self):
         self.exlusions_file_name = tkint.filedialog.askopenfilename()
 
-    def _setup_results_window(self, total_entries):
+    def _setup_new_window(self, title=''):
         self.popup = tkint.Toplevel(self)
-        self.popup.wm_title("Trainings done #{0}".format(total_entries))
+        self.popup.wm_title(title)
         frame = tkint.Frame(self.popup, relief=tkint.RAISED, borderwidth=1)
         frame.pack(fill=tkint.BOTH, expand=True)
         self.popup.grab_set()
+
+    def _setup_results_window(self, total_entries):
+        self._setup_new_window("Trainings done #{0}".format(total_entries))
 
     def _list_results(self, results):
         self._setup_results_window(len(results[0]))
@@ -127,13 +136,16 @@ class mbb40Gui(tkint.Frame):
         self.csv_file_name = None
         self.exlusions_file_name = None
 
+    def __options(self):
+        self._setup_new_window('CSV import file options')
+
     def run(self):
         if not self.csv_file_name:
             tkint.messagebox.showerror('Error', 'No csv file given!')
             return
 
-        self.mbb40 = SabaTrainingTimer(self.csv_file_name,
-                                       self.exlusions_file_name)
+        self.mbb40 = self.training_calculator_cls(self.csv_file_name,
+                                                  self.exlusions_file_name)
 
         results = self.mbb40.gui_report()
 
