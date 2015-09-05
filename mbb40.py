@@ -37,9 +37,10 @@ def main():
     try:
         mbb40 = SabaTrainingTimer(file_name, exclude_file)
         mbb40.autorun()
-        input('Press any key to exit')
     except Exception as error:
         print(error)
+    finally:
+        input('Press any key to exit')
 
 if __name__ == '__main__':
     main()
