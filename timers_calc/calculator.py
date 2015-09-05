@@ -19,5 +19,5 @@ class TimestampTimeCalculator(TimeCalculator):
         return total_time
 
     def calculate_total_training_time(self):
-        self._seconds = self._total_time_sum().seconds
+        self._seconds = self._total_time_sum().total_seconds()
         return self.calculate()

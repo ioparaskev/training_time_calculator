@@ -1,6 +1,6 @@
 __author__ = 'ioparaskev'
 
-from copy import deepcopy
+from copy import copy
 from file_handlers.generic_file import FileReader
 from prompt_handler.prompt_handles import PromptWrapper
 from timers_calc.calculator import TimestampTimeCalculator
@@ -60,12 +60,18 @@ class TrainingsPool(object):
         training_time = TimestampTimeCalculator(self._trainings)
         return training_time.calculate_total_training_time()
 
-    def print_report(self):
+    def setup_time(self):
         if self._time_not_set:
             self._total_training_time = self.calculate_training_time()
 
+    def print_report(self):
+        self.setup_time()
         self.print_training_titles()
         self.print_total_training_time()
+
+    def get_report(self):
+        self.setup_time()
+        return self._trainings, self.training_time
 
 
 class SabaTrainings(TrainingsPool):
@@ -76,7 +82,7 @@ class SabaTrainings(TrainingsPool):
 
 class TrainingsPoolFilter(object):
     def __init__(self, traing_pool, exclude_file=None):
-        self.training_pool = deepcopy(traing_pool)
+        self.training_pool = copy(traing_pool)
         self.exclude_reader = FileReader(exclude_file) if exclude_file else None
 
     @staticmethod
@@ -111,8 +117,12 @@ class TrainingsPoolFilter(object):
         trainings_to_exclude = TrainingsPool(exclusions)
         self._exclude_multiple_trainings(trainings_to_exclude.trainings)
 
-    def filter_trainings(self):
-        if not self.exclude_reader:
+    def filter_trainings(self, trainings=None):
+        if trainings:
+            for i, training in enumerate(self.training_pool.trainings):
+                if i in trainings:
+                    self._exclude_training(training)
+        elif not self.exclude_reader:
             self._exclude_interactively()
         else:
             self._exclude_from_file()

@@ -36,9 +36,9 @@ class SabaTrainingTimer(object):
         self._setup_training_pool()
         self.training_pool.print_report()
 
-    def _filter_trainings(self):
+    def _filter_trainings(self, trainings=None):
         training_filter = TrainingsPoolFilter(self.training_pool, self.exclude_file)
-        return training_filter.filter_trainings()
+        return training_filter.filter_trainings(trainings)
 
     def _interactive_exclusion(self):
         exclude_question = 'Do you want to exclude any of the trainings?(y/n)'
@@ -48,14 +48,22 @@ class SabaTrainingTimer(object):
         exclude_choice = prompt.get_prompt_answer()
         return exclude_choice == 'y'
 
-    def exclude(self):
-        self._setup_training_pool()
-        run_exclude = self.exclude_file or self._interactive_exclusion()
-        if run_exclude:
-            filtered_pool = self._filter_trainings()
-            if len(filtered_pool.trainings) != len(self.training_pool.trainings):
-                self.training_pool = filtered_pool
+    def exclude(self, exclusions=None):
+        filtered_pool = self._filter_trainings(exclusions)
+        if len(filtered_pool.trainings) != len(self.training_pool.trainings):
+            self.training_pool = filtered_pool
 
     def autorun(self):
-        self.exclude()
+        self._setup_training_pool()
+        if self.exclude_file or self._interactive_exclusion():
+            self.exclude()
         self.print_report()
+
+    def get_report(self):
+        return self.training_pool.get_report()
+
+    def gui_report(self):
+        self._setup_training_pool()
+        if self.exclude_file:
+            self.exclude()
+        return self.get_report()
