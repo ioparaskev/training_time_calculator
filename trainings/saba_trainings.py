@@ -19,9 +19,9 @@ class SabaTrainingTimer(object):
         self.exclude_file = exclude_file
         self.csv_reader = CSVReader(file_name, delimiter='|', newline='')
 
-        self._setup_exclusions()
         self.total_time = tuple()
         self.training_pool = None
+        self._setup_exclusions()
 
     def _create_trainings(self):
         lines = self.csv_reader.read_file()
