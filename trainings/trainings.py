@@ -145,10 +145,11 @@ class TrainingTimeCalculator(object):
 
     def _create_trainings(self):
         lines = self.csv_reader.read_file()
-        exported_trainings = self.keyword_skipper.skip_rows_by_keywords(lines)
+        if self.keyword_skipper:
+            lines = self.keyword_skipper.skip_rows_by_keywords(lines)
         self.training_pool = TrainingPoolCrafter(self.title_column_num,
                                                  self.time_column_num,
-                                                 exported_trainings)
+                                                 lines)
 
     def _setup_training_pool(self):
         if not self.training_pool:

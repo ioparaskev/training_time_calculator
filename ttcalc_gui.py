@@ -3,6 +3,7 @@ __author__ = 'jparaske'
 from tkinter import ttk, filedialog, messagebox, font
 import tkinter as tkint
 from trainings.saba_trainings import SabaTrainingTimer
+from trainings.trainings import TrainingTimeCalculator
 from os import path
 from sys import platform
 
@@ -83,13 +84,16 @@ class mbb40Gui(tkint.Frame):
         clear_button = tkint.Button(self, text="Clear", command=self._clear)
         clear_button.pack(side=tkint.LEFT, padx=5, pady=5)
 
-        options_button = tkint.Button(self, text="Options",
-                                      command=self.__options)
-        options_button.pack(side=tkint.LEFT, padx=5, pady=5)
+        # options_button = tkint.Button(self, text="Options",
+        #                               command=self.__options)
+        # options_button.pack(side=tkint.LEFT, padx=5, pady=5)
+
+        about_button = tkint.Button(self, text="About", command=self.__about)
+        about_button.pack(side=tkint.LEFT, padx=5, pady=5)
 
     def _setup_ui(self):
 
-        self.parent.title("SABA Training time calculator")
+        self.parent.title("Training time calculator")
 
         frame = tkint.Frame(self, relief=tkint.RAISED, borderwidth=1)
         frame.pack(fill=tkint.BOTH, expand=1)
@@ -98,14 +102,18 @@ class mbb40Gui(tkint.Frame):
         self._setup_buttons(frame)
 
     def _set_training_file(self):
-        self.csv_file_name = tkint.filedialog.askopenfilename()
+        types = [('CSV files', '*.csv')]
+        self.csv_file_name = tkint.filedialog.askopenfilename(filetypes=types)
 
     def _set_exclusions_file(self):
-        self.exlusions_file_name = tkint.filedialog.askopenfilename()
+        types = [('Text files', '*.txt'), ('All files', '*')]
+        self.exlusions_file_name = tkint.filedialog.askopenfilename(filetypes=types)
 
-    def _setup_new_window(self, title=''):
+    def _setup_new_window(self, title='', geometry=None):
         self.popup = tkint.Toplevel(self)
         self.popup.wm_title(title)
+        if geometry:
+            self.popup.geometry(geometry)
         frame = tkint.Frame(self.popup, relief=tkint.RAISED, borderwidth=1)
         frame.pack(fill=tkint.BOTH, expand=True)
         self.popup.grab_set()
@@ -150,9 +158,55 @@ class mbb40Gui(tkint.Frame):
     def _clear(self):
         self.csv_file_name = None
         self.exlusions_file_name = None
+        self._calculator = None
+
+    def __about(self):
+        self._setup_new_window('About Training time Calculator')
+
+        __help = ('Open csv file to open for parsing the trainings\n'
+                   'Create a txt file containing on each line the training'
+                   'to exclude, to automatically exclude those trainings\n'
+                   'Originally developed for Nokia SABA trainings calculation\n'
+                   'Developed by: John Paraskevopoulos\n'
+                   'MIT License - 2015'
+                   '')
+        help_text = tkint.Text(self.popup, height=8, wrap=tkint.WORD)
+        help_text.pack(side=tkint.TOP)
+        help_text.insert(tkint.END, __help)
+        help_text.config(state=tkint.DISABLED)
+
+        close_button = tkint.Button(self.popup, text="Close",
+                                    command=self.popup.destroy)
+        close_button.pack(side=tkint.RIGHT, padx=5, pady=5)
+        center(self.popup)
+
+    def validate(self, action, index, value_if_allowed,
+                 prior_value, text, validation_type, trigger_type, widget_name):
+
+        pass
 
     def __options(self):
         self._setup_new_window('CSV import file options')
+
+        delimiter_label = tkint.Label(self.popup, text='Column delimiter:')
+        delimiter_label.pack(side=tkint.LEFT)
+
+        vcmd = (self.register(self.validate),
+                '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W')
+        delimiter_text = tkint.Text('')
+        delimiter_text.pack()
+
+
+
+        close_button = tkint.Button(self.popup, text="Close",
+                                    command=self.popup.destroy)
+        close_button.pack(side=tkint.RIGHT, padx=5, pady=5)
+
+        save_button = tkint.Button(self.popup, text="Save",
+                                   command=self.popup.destroy)
+        save_button.pack(side=tkint.RIGHT, padx=5, pady=5)
+
+        center(self.popup)
 
     def run(self):
         if not self.csv_file_name:
@@ -173,12 +227,6 @@ def main():
     root.resizable(0, 0)
     mbb40Gui(root)
     center(root)
-    if platform == "win32":
-        root.iconbitmap('{}\chronometer.ico'
-                        .format(path.dirname(path.realpath(__file__))))
-    else:
-        img = tkint.Image("photo", file="chronometer.gif")
-        root.tk.call('wm', 'iconphoto', root._w, img)
     root.mainloop()
 
 

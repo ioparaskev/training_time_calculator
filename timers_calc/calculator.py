@@ -13,8 +13,13 @@ class TimestampTimeCalculator(TimeCalculator):
     def _total_time_sum(self):
         total_time = datetime.timedelta(hours=0, minutes=0)
         for train in self.trainings:
-            timer = datetime.datetime.strptime(train.timestamp, self.time_format)
-            total_time += datetime.timedelta(hours=timer.hour, minutes=timer.minute)
+            try:
+                timer = datetime.datetime.strptime(train.timestamp,
+                                                   self.time_format)
+                total_time += datetime.timedelta(hours=timer.hour,
+                                                 minutes=timer.minute)
+            except ValueError:
+                continue
 
         return total_time
 
