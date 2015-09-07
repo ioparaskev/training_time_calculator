@@ -53,6 +53,12 @@ class mbb40Gui(tkint.Frame):
 
         self._calculator = None
 
+        self.delimiter = '|'
+        self.title = 0
+        self.time = 3
+
+        self.custom_options = None
+
     @property
     def _training_crafter(self):
         return SabaTrainingTimer
@@ -84,9 +90,9 @@ class mbb40Gui(tkint.Frame):
         clear_button = tkint.Button(self, text="Clear", command=self._clear)
         clear_button.pack(side=tkint.LEFT, padx=5, pady=5)
 
-        # options_button = tkint.Button(self, text="Options",
-        #                               command=self.__options)
-        # options_button.pack(side=tkint.LEFT, padx=5, pady=5)
+        options_button = tkint.Button(self, text="Options",
+                                      command=self.__options)
+        options_button.pack(side=tkint.LEFT, padx=5, pady=5)
 
         about_button = tkint.Button(self, text="About", command=self.__about)
         about_button.pack(side=tkint.LEFT, padx=5, pady=5)
@@ -180,30 +186,85 @@ class mbb40Gui(tkint.Frame):
         close_button.pack(side=tkint.RIGHT, padx=5, pady=5)
         center(self.popup)
 
-    def validate(self, action, index, value_if_allowed,
-                 prior_value, text, validation_type, trigger_type, widget_name):
+    def validate_num(self, action, char, post_val, pro_val, text, t_validation,
+                     validation, widget_name):
 
-        pass
+        if not text.isdigit() or len(post_val) > 5:
+            self.bell()
+            return False
+        return True
+
+    def validate_delimiter(self, action, char, post_val, pro_val, text, t_validation,
+                     validation, widget_name):
+        if not text.isprintable() or len(post_val) > 5:
+            self.bell()
+            return False
+        return True
+
+    def __save(self):
+        self.delimiter = self.custom_options['delimiter'].get()
+        title_num = self.custom_options['title'].get()
+        if title_num:
+            self.title = int(title_num)
+        else:
+            self.title = 0
+
+        time_num = self.custom_options['time'].get()
+        if time_num:
+            self.time = int(time_num)
+        else:
+            self.time = 0
+
+        self.popup.destroy()
+
+    def create_custom_csv_options(self):
+        delimiter_label = tkint.Label(self.popup, text='Column delimiter:')
+        delimiter_label.pack(side=tkint.LEFT)
+
+        validate_delimiter = (self.register(self.validate_delimiter),
+                              '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W')
+
+        delimiter_text = tkint.Entry(self.popup, validate="key",
+                                     validatecommand=validate_delimiter,
+                                     width=5)
+        delimiter_text.pack(side=tkint.LEFT, padx=5)
+
+        validate_num = (self.register(self.validate_num),
+                        '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W')
+
+        title_label = tkint.Label(self.popup, text='Title column #:')
+        title_label.pack(side=tkint.LEFT)
+
+        title_num = tkint.Entry(self.popup, validate="key", text=self.title,
+                                validatecommand=validate_num, width=5)
+        title_num.delete(0, tkint.END)
+        title_num.insert(0, self.title)
+        title_num.pack(side=tkint.LEFT, padx=5)
+
+        time_label = tkint.Label(self.popup, text='Time column #:')
+        time_label.pack(side=tkint.LEFT)
+
+        time_num = tkint.Entry(self.popup, validate="key",
+                               validatecommand=validate_num, width=5)
+
+        time_num.delete(0, tkint.END)
+        time_num.insert(0, self.time)
+        time_num.pack(side=tkint.LEFT, padx=5)
+
+        self.custom_options = {'delimiter': delimiter_text, 'title': title_num,
+                               'time': time_num}
 
     def __options(self):
         self._setup_new_window('CSV import file options')
 
-        delimiter_label = tkint.Label(self.popup, text='Column delimiter:')
-        delimiter_label.pack(side=tkint.LEFT)
-
-        vcmd = (self.register(self.validate),
-                '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W')
-        delimiter_text = tkint.Text('')
-        delimiter_text.pack()
-
-
+        self.create_custom_csv_options()
 
         close_button = tkint.Button(self.popup, text="Close",
                                     command=self.popup.destroy)
         close_button.pack(side=tkint.RIGHT, padx=5, pady=5)
 
         save_button = tkint.Button(self.popup, text="Save",
-                                   command=self.popup.destroy)
+                                   command=self.__save)
         save_button.pack(side=tkint.RIGHT, padx=5, pady=5)
 
         center(self.popup)
@@ -223,7 +284,7 @@ class mbb40Gui(tkint.Frame):
 
 def main():
     root = tkint.Tk()
-    root.geometry("300x100+200+100")
+    root.geometry("380x100+200+100")
     root.resizable(0, 0)
     mbb40Gui(root)
     center(root)
