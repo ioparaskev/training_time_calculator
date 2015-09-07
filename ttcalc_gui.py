@@ -54,13 +54,15 @@ class mbb40Gui(tkint.Frame):
         self._calculator = None
 
         self.delimiter = '|'
-        self.title = 0
-        self.time = 3
+        self.title_column = 0
+        self.time_column = 3
 
         self.custom_options = None
 
     @property
     def _training_crafter(self):
+        if self.custom_options:
+            return TrainingTimeCalculator
         return SabaTrainingTimer
 
     @property
@@ -68,10 +70,12 @@ class mbb40Gui(tkint.Frame):
         if not self._calculator:
             self._calculator = self._training_crafter(self.csv_file_name,
                                                       self.exlusions_file_name)
+            self._calculator.setup_options(self.delimiter, self.title_column,
+                                           self.time_column)
 
         return self._calculator
 
-    def _setup_buttons(self, frame):
+    def _setup_main_window_buttons(self, frame):
         csv_file_button = tkint.Button(frame, text='Open file with trainings',
                                        command=self._set_training_file,
                                        width=50)
@@ -105,7 +109,7 @@ class mbb40Gui(tkint.Frame):
         frame.pack(fill=tkint.BOTH, expand=1)
         self.pack(fill=tkint.BOTH, expand=1)
 
-        self._setup_buttons(frame)
+        self._setup_main_window_buttons(frame)
 
     def _set_training_file(self):
         types = [('CSV files', '*.csv')]
@@ -165,6 +169,7 @@ class mbb40Gui(tkint.Frame):
         self.csv_file_name = None
         self.exlusions_file_name = None
         self._calculator = None
+        self.custom_options = None
 
     def __about(self):
         self._setup_new_window('About Training time Calculator')
@@ -196,28 +201,29 @@ class mbb40Gui(tkint.Frame):
 
     def validate_delimiter(self, action, char, post_val, pro_val, text, t_validation,
                      validation, widget_name):
-        if not text.isprintable() or len(post_val) > 5:
+        if not text.isprintable() or len(post_val) > 1:
             self.bell()
             return False
         return True
 
     def __save(self):
+        self._calculator = None
         self.delimiter = self.custom_options['delimiter'].get()
         title_num = self.custom_options['title'].get()
         if title_num:
-            self.title = int(title_num)
+            self.title_column = int(title_num)
         else:
-            self.title = 0
+            self.title_column = 0
 
         time_num = self.custom_options['time'].get()
         if time_num:
-            self.time = int(time_num)
+            self.time_column = int(time_num)
         else:
-            self.time = 0
+            self.time_column = 0
 
         self.popup.destroy()
 
-    def create_custom_csv_options(self):
+    def _create_custom_csv_options(self):
         delimiter_label = tkint.Label(self.popup, text='Column delimiter:')
         delimiter_label.pack(side=tkint.LEFT)
 
@@ -226,8 +232,10 @@ class mbb40Gui(tkint.Frame):
 
         delimiter_text = tkint.Entry(self.popup, validate="key",
                                      validatecommand=validate_delimiter,
-                                     width=5)
+                                     width=1)
         delimiter_text.pack(side=tkint.LEFT, padx=5)
+        delimiter_text.delete(0, tkint.END)
+        delimiter_text.insert(0, self.delimiter)
 
         validate_num = (self.register(self.validate_num),
                         '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W')
@@ -235,10 +243,10 @@ class mbb40Gui(tkint.Frame):
         title_label = tkint.Label(self.popup, text='Title column #:')
         title_label.pack(side=tkint.LEFT)
 
-        title_num = tkint.Entry(self.popup, validate="key", text=self.title,
+        title_num = tkint.Entry(self.popup, validate="key", text=self.title_column,
                                 validatecommand=validate_num, width=5)
         title_num.delete(0, tkint.END)
-        title_num.insert(0, self.title)
+        title_num.insert(0, self.title_column)
         title_num.pack(side=tkint.LEFT, padx=5)
 
         time_label = tkint.Label(self.popup, text='Time column #:')
@@ -248,7 +256,7 @@ class mbb40Gui(tkint.Frame):
                                validatecommand=validate_num, width=5)
 
         time_num.delete(0, tkint.END)
-        time_num.insert(0, self.time)
+        time_num.insert(0, self.time_column)
         time_num.pack(side=tkint.LEFT, padx=5)
 
         self.custom_options = {'delimiter': delimiter_text, 'title': title_num,
@@ -257,7 +265,7 @@ class mbb40Gui(tkint.Frame):
     def __options(self):
         self._setup_new_window('CSV import file options')
 
-        self.create_custom_csv_options()
+        self._create_custom_csv_options()
 
         close_button = tkint.Button(self.popup, text="Close",
                                     command=self.popup.destroy)
@@ -274,13 +282,18 @@ class mbb40Gui(tkint.Frame):
             tkint.messagebox.showerror('Error', 'No csv file given!')
             return
 
-        results = self.training_calculator.gui_report()
+        try:
+            results = self.training_calculator.gui_report()
 
-        if self.exlusions_file_name:
-            self._show_results(results)
-        else:
-            self._show_results_to_exclude(results)
-
+            if self.exlusions_file_name:
+                self._show_results(results)
+            else:
+                self._show_results_to_exclude(results)
+        except IndexError:
+            parse_error = ('Error parsing file! Make sure that delimiter and '
+                           'title/time column options are correct')
+            tkint.messagebox.showerror('Error parsing file', parse_error)
+            return
 
 def main():
     root = tkint.Tk()

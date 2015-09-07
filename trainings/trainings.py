@@ -135,15 +135,21 @@ class TrainingsPoolFilter(object):
 
 class TrainingTimeCalculator(object):
     def __init__(self, file_name, exclude_file):
+        self.file_name = file_name
         self.exclude_file = exclude_file
+        self.csv_reader = None
+
         self.total_time = tuple()
-        self.csv_reader = CSVReader(file_name, delimiter='|', newline='')
+
+        self.delimiter = None
         self.title_column_num = 0
-        self.time_column_num = 0
+        self.time_column_num = 1
         self.keyword_skipper = None
         self.training_pool = None
 
     def _create_trainings(self):
+        self.csv_reader = CSVReader(self.file_name, delimiter=self.delimiter,
+                                    newline='')
         lines = self.csv_reader.read_file()
         if self.keyword_skipper:
             lines = self.keyword_skipper.skip_rows_by_keywords(lines)
@@ -154,6 +160,11 @@ class TrainingTimeCalculator(object):
     def _setup_training_pool(self):
         if not self.training_pool:
             self._create_trainings()
+
+    def setup_options(self, delimiter='|', title_column_num=0, time_column_num=0):
+        self.delimiter = delimiter
+        self.title_column_num = title_column_num
+        self.time_column_num = time_column_num
 
     def print_report(self):
         self._setup_training_pool()

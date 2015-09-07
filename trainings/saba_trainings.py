@@ -16,5 +16,8 @@ class SabaTrainingTimer(TrainingTimeCalculator):
     def __init__(self, file_name, exclude_file=None):
         super(SabaTrainingTimer, self).__init__(file_name, exclude_file)
         self._setup_exclusions()
+
+    def setup_options(self, delimiter='|', title_column_num=0, time_column_num=0):
+        self.delimiter = '|'
         self.title_column_num = 0
         self.time_column_num = 3

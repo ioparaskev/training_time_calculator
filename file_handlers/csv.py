@@ -16,7 +16,7 @@ class CSVReader(FileReader):
     def read_file(self):
         read_columns = []
         with self.open_file() as file:
-            line_reader = csv.reader(file, delimiter='|')
+            line_reader = csv.reader(file, delimiter=self._delimeter)
             for row in line_reader:
                 read_columns.append(row)
 
