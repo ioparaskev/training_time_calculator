@@ -169,7 +169,11 @@ class mbb40Gui(tkint.Frame):
         self.csv_file_name = None
         self.exlusions_file_name = None
         self._calculator = None
+
         self.custom_options = None
+        self.delimiter = '|'
+        self.title_column = '0'
+        self.time_column = '3'
 
     def __about(self):
         self._setup_new_window('About Training time Calculator')
