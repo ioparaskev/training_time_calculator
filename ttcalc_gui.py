@@ -183,7 +183,7 @@ class mbb40Gui(tkint.Frame):
                    'to exclude, to automatically exclude those trainings\n'
                    'Originally developed for Nokia SABA trainings calculation\n'
                    'Developed by: John Paraskevopoulos\n'
-                   'MIT License - 2015'
+                   'GPL v3.0 License - 2015'
                    '')
         help_text = tkint.Text(self.popup, height=8, wrap=tkint.WORD)
         help_text.pack(side=tkint.TOP)
