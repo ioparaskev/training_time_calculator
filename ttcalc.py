@@ -9,7 +9,7 @@ from argparse import ArgumentParser
 def args_crafter():
 
     parser = ArgumentParser(prog='ttcalc',
-                            description='Total training time counter\n'
+                            description='Total training time calculator.'
                                         'Calculates total training time based '
                                         'on csv file import',
                             usage='%(prog)s [options]')
