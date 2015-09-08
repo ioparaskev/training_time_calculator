@@ -10,11 +10,11 @@ if version_info < (3,):
     print('Python version 2.x is not supported')
 
 setup(
-    name = "ttcalc",
-    version = "0.8",
+    name = "Training time calculator",
+    version = "1.0",
     description = "Training time calculator",
     executables = [Executable("ttcalc_gui.py",
-    shortcutName="TTCALC",
+    shortcutName="Training time calculator",
     shortcutDir="DesktopFolder",
     icon="chronometer.ico", base=base)],
     install_requires=['cx_Freeze'])
