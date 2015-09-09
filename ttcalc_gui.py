@@ -1,4 +1,4 @@
-__author__ = 'jparaske'
+__author__ = 'ioparaske'
 
 from tkinter import ttk, filedialog, messagebox, font
 import tkinter as tkint
