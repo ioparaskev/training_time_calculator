@@ -1,4 +1,4 @@
-__author__ = 'jparaske'
+__author__ = 'ioparaskev'
 from sys import platform, version_info
 from cx_Freeze import setup, Executable
 
