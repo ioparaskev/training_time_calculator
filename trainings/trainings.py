@@ -1,4 +1,4 @@
-from file_handlers.csv import CSVReader
+from file_handlers.csv_handler import CSVReader
 
 __author__ = 'ioparaskev'
 

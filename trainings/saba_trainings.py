@@ -1,6 +1,6 @@
 __author__ = 'ioparaskev'
 
-from file_handlers.csv import CSVKeywordSkipper
+from file_handlers.csv_handler import CSVKeywordSkipper
 from trainings.trainings import TrainingTimeCalculator
 
 
