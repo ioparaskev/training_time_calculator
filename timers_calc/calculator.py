@@ -5,19 +5,27 @@ from timers_calc.hms import TimeCalculator
 
 
 class TimestampTimeCalculator(TimeCalculator):
-    def __init__(self, trainings, time_format='%H:%M'):
+    def __init__(self, trainings):
         self.trainings = trainings
-        self.time_format = time_format
         super(TimestampTimeCalculator, self).__init__(0)
+
+    def get_time_delta(self, training):
+        times = training.timestamp.split(":")
+        if len(times) > 2:
+            return times
+        elif len(times) < 2:
+            return 0, 0, int(times[0])
+        else:
+            return int(times[0]), int(times[1]), 0
 
     def _total_time_sum(self):
         total_time = datetime.timedelta(hours=0, minutes=0)
         for train in self.trainings:
             try:
-                timer = datetime.datetime.strptime(train.timestamp,
-                                                   self.time_format)
-                total_time += datetime.timedelta(hours=timer.hour,
-                                                 minutes=timer.minute)
+                hour, minutes, seconds = self.get_time_delta(train)
+                total_time += datetime.timedelta(hours=hour,
+                                                 minutes=minutes,
+                                                 seconds=seconds)
             except ValueError:
                 continue
 
