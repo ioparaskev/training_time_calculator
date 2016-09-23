@@ -11,7 +11,7 @@ if version_info < (3,):
 
 setup(
     name="Training time calculator",
-    version="1.0",
+    version="1.1",
     description="Training time calculator",
     executables=[Executable("ttcalc_gui.py",
                             shortcutName="Training time calculator",
